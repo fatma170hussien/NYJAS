@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Pyrolysis Chamber Design</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a3a, #0d1b2a);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 10px rgba(0, 242, 254, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0a0a0;
+            margin-bottom: 20px;
+        }
+        
+        .model-container {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+        
+        #pyrolysis-chamber {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls {
+            background: rgba(30, 40, 50, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 15px;
+        }
+        
+        .control-label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4facfe;
+        }
+        
+        button {
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            color: #0d1b2a;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.5);
+        }
+        
+        .details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .detail-card {
+            background: rgba(30, 40, 50, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .detail-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .detail-card h3 {
+            color: #00f2fe;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+        
+        .specs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .spec-item {
+            background: rgba(40, 50, 60, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .spec-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #4facfe;
+            margin: 10px 0;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+            color: #a0a0a0;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00f2fe;
+            font-size: 1.2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .model-container {
+                height: 400px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>3D Pyrolysis Chamber Design</h1>
+            <p class="subtitle">Interactive 3D model of an industrial pyrolysis chamber</p>
+        </header>
+        
+        <div class="model-container">
+            <div id="pyrolysis-chamber"></div>
+            <div class="loading">Loading 3D Model...</div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <span class="control-label">View Mode</span>
+                <button id="view-exterior">Exterior View</button>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Chamber Sections</span>
+                <button id="view-internal">Internal View</button>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Animation</span>
+                <button id="toggle-animation">Start Animation</button>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Reset View</span>
+                <button id="reset-view">Reset</button>
+            </div>
+        </div>
+        
+        <div class="details">
+            <div class="detail-card">
+                <h3>Design Overview</h3>
+                <p>The pyrolysis chamber is designed for efficient thermal decomposition of organic materials at elevated temperatures in the absence of oxygen. This model showcases the key components including the reactor vessel, heating elements, gas collection system, and safety features.</p>
+            </div>
+            <div class="detail-card">
+                <h3>Key Features</h3>
+                <ul>
+                    <li>High-temperature resistant alloy construction</li>
+                    <li>Multi-zone heating system</li>
+                    <li>Advanced thermal insulation</li>
+                    <li>Gas collection and filtration system</li>
+                    <li>Automated temperature control</li>
+                    <li>Safety pressure release valves</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="specs">
+            <div class="spec-item">
+                <h4>Operating Temperature</h4>
+                <div class="spec-value">400-800°C</div>
+                <p>Adjustable based on feedstock</p>
+            </div>
+            <div class="spec-item">
+                <h4>Chamber Capacity</h4>
+                <div class="spec-value">1500 L</div>
+                <p>Standard batch volume</p>
+            </div>
+            <div class="spec-item">
+                <h4>Heating Rate</h4>
+                <div class="spec-value">10°C/min</div>
+                <p>Controlled ramp-up</p>
+            </div>
+            <div class="spec-item">
+                <h4>Residence Time</h4>
+                <div class="spec-value">30-90 min</div>
+                <p>Depending on material</p>
+            </div>
+        </div>
+        
+        <footer>
+            <p>3D Pyrolysis Chamber Model | Designed for Educational Purposes</p>
+            <p>Model can be exported for 3D printing or further CAD refinement</p>
+        </footer>
+    </div>
+
+    <script>
+        // Three.js implementation for the pyrolysis chamber
+        document.addEventListener('DOMContentLoaded', function() {
+            // Remove loading message
+            document.querySelector('.loading').style.display = 'none';
+            
+            // Set up Three.js scene
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            // Get container and set renderer size
+            const container = document.getElementById('pyrolysis-chamber');
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            
+            // Add orbit controls
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Set camera position
+            camera.position.z = 15;
+            camera.position.y = 8;
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0x4facfe, 0.5, 100);
+            pointLight.position.set(0, 10, 0);
+            scene.add(pointLight);
+            
+            // Colors for different parts
+            const colors = {
+                chamber: 0x2c3e50,
+                insulation: 0x7f8c8d,
+                heating: 0xe74c3c,
+                pipes: 0x3498db,
+                base: 0x34495e,
+                details: 0xf39c12
+            };
+            
+            // Create pyrolysis chamber components
+            function createChamber() {
+                const group = new THREE.Group();
+                
+                // Main chamber body (cylinder)
+                const chamberGeometry = new THREE.CylinderGeometry(4, 4, 10, 32);
+                const chamberMaterial = new THREE.MeshPhongMaterial({ 
+                    color: colors.chamber,
+                    shininess: 30,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const chamber = new THREE.Mesh(chamberGeometry, chamberMaterial);
+                group.add(chamber);
+                
+                // Chamber insulation layer
+                const insulationGeometry = new THREE.CylinderGeometry(4.2, 4.2, 10.2, 32);
+                const insulationMaterial = new THREE.MeshPhongMaterial({ 
+                    color: colors.insulation,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const insulation = new THREE.Mesh(insulationGeometry, insulationMaterial);
+                group.add(insulation);
+                
+                // Heating elements (around the chamber)
+                const heatingGeometry = new THREE.TorusGeometry(4.5, 0.3, 16, 100);
+                const heatingMaterial = new THREE.MeshPhongMaterial({ color: colors.heating });
+                
+                for (let i = 0; i < 5; i++) {
+                    const heatingElement = new THREE.Mesh(heatingGeometry, heatingMaterial);
+                    heatingElement.position.y = -4 + i * 2;
+                    heatingElement.rotation.x = Math.PI / 2;
+                    group.add(heatingElement);
+                }
+                
+                // Inlet pipe
+                const inletPipeGeometry = new THREE.CylinderGeometry(0.5, 0.5, 4, 16);
+                const pipeMaterial = new THREE.MeshPhongMaterial({ color: colors.pipes });
+                const inletPipe = new THREE.Mesh(inletPipeGeometry, pipeMaterial);
+                inletPipe.position.set(-5, 2, 0);
+                inletPipe.rotation.z = Math.PI / 2;
+                group.add(inletPipe);
+                
+                // Outlet pipe
+                const outletPipeGeometry = new THREE.CylinderGeometry(0.4, 0.4, 5, 16);
+                const outletPipe = new THREE.Mesh(outletPipeGeometry, pipeMaterial);
+                outletPipe.position.set(5, -1, 0);
+                outletPipe.rotation.z = -Math.PI / 2;
+                group.add(outletPipe);
+                
+                // Base platform
+                const baseGeometry = new THREE.BoxGeometry(12, 1, 12);
+                const baseMaterial = new THREE.MeshPhongMaterial({ color: colors.base });
+                const base = new THREE.Mesh(baseGeometry, baseMaterial);
+                base.position.y = -6;
+                group.add(base);
+                
+                // Support legs
+                const legGeometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 16);
+                const legMaterial = new THREE.MeshPhongMaterial({ color: colors.details });
+                
+                for (let i = 0; i < 4; i++) {
+                    const leg = new THREE.Mesh(legGeometry, legMaterial);
+                    const angle = (i / 4) * Math.PI * 2;
+                    leg.position.set(
+                        Math.cos(angle) * 5,
+                        -7,
+                        Math.sin(angle) * 5
+                    );
+                    group.add(leg);
+                }
+                
+                // Control panel
+                const panelGeometry = new THREE.BoxGeometry(3, 2, 0.2);
+                const panelMaterial = new THREE.MeshPhongMaterial({ color: 0x2c3e50 });
+                const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+                panel.position.set(0, -4, 6);
+                group.add(panel);
+                
+                // Add details to control panel
+                const buttonGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+                const buttonMaterial = new THREE.MeshPhongMaterial({ color: 0xe74c3c });
+                
+                for (let i = 0; i < 6; i++) {
+                    const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
+                    button.position.set(
+                        -1 + (i % 3) * 1,
+                        -3.5 + Math.floor(i / 3) * 0.5,
+                        6.1
+                    );
+                    group.add(button);
+                }
+                
+                return group;
+            }
+            
+            // Create and add the chamber to the scene
+            const pyrolysisChamber = createChamber();
+            scene.add(pyrolysisChamber);
+            
+            // Animation variables
+            let animationId = null;
+            let isAnimating = false;
+            
+            // Animation function
+            function animate() {
+                if (isAnimating) {
+                    pyrolysisChamber.rotation.y += 0.005;
+                    
+                    // Pulsing effect for heating elements
+                    const time = Date.now() * 0.001;
+                    pyrolysisChamber.children.forEach((child, index) => {
+                        if (child.material && child.material.color.getHex() === colors.heating) {
+                            const intensity = 0.5 + 0.5 * Math.sin(time * 5 + index);
+                            child.material.emissive = new THREE.Color(intensity, intensity * 0.3, intensity * 0.1);
+                        }
+                    });
+                }
+                
+                controls.update();
+                renderer.render(scene, camera);
+                animationId = requestAnimationFrame(animate);
+            }
+            
+            // Start the animation loop
+            animate();
+            
+            // Control button event handlers
+            document.getElementById('view-exterior').addEventListener('click', function() {
+                camera.position.set(15, 8, 15);
+                camera.lookAt(0, 0, 0);
+                pyrolysisChamber.children.forEach(child => {
+                    if (child.material) child.material.transparent = false;
+                });
+            });
+            
+            document.getElementById('view-internal').addEventListener('click', function() {
+                camera.position.set(0, 0, 10);
+                camera.lookAt(0, 0, 0);
+                pyrolysisChamber.children.forEach(child => {
+                    if (child.material && child.geometry.type === 'CylinderGeometry') {
+                        child.material.transparent = true;
+                        child.material.opacity = 0.3;
+                    }
+                });
+            });
+            
+            document.getElementById('toggle-animation').addEventListener('click', function() {
+                isAnimating = !isAnimating;
+                this.textContent = isAnimating ? 'Stop Animation' : 'Start Animation';
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', function() {
+                controls.reset();
+                camera.position.set(15, 8, 15);
+                camera.lookAt(0, 0, 0);
+                pyrolysisChamber.children.forEach(child => {
+                    if (child.material) {
+                        child.material.transparent = false;
+                        child.material.opacity = 1;
+                    }
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        });
+    </script>
+</body>
+</html>
